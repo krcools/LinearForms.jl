@@ -1,5 +1,6 @@
 module LinearForms
 
+export hilbert_space, @eq
 
 type HilbertVector{T}
     idx
@@ -66,7 +67,7 @@ macro eq(x)
     @assert x.args[2] == :(==)
     lhs = x.args[1]
     rhs = x.args[3]
-    :( Equation($lhs, $rhs))
+    :( Equation($(esc(lhs)), $(esc(rhs))))
 end
 
 end # module
