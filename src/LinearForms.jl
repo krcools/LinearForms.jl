@@ -2,12 +2,17 @@ module LinearForms
 
 export hilbert_space, @eq
 
+import Base:+, -, *, dot
+import Base:print
+
 type HilbertVector{T}
     idx
     space
 end
 
 field{T}(v::HilbertVector{T}) = T
+print(io::IO, v::HilbertVector) = print(io, v.space[v.idx])
+
 
 function hilbert_space(T::Type, vars...)
     [HilbertVector{T}(i, [vars...]) for i in 1:length(vars)]
@@ -18,7 +23,6 @@ type MappedVector
     vector
 end
 
-import Base:*
 *(A, v::HilbertVector) = MappedVector(A,v)
 
 
@@ -31,7 +35,16 @@ type BilinearForm
     operators
 end
 
-import Base:dot
+function print(io::IO, a::BilinearForm)
+  for i in 1:length(a.operators)
+    print(io, "dot(")
+    print(io, a.test_space[a.test_ids[i]], ", ")
+    print(io, a.operators[i], "*")
+    print(io, a.trial_space[a.trial_ids[i]], ")")
+    i == length(a.operators) || print(io, " + ")
+  end
+end
+
 function dot(v::HilbertVector, Au::MappedVector)
     test_space  = v.space
     trial_space = Au.vector.space
@@ -42,7 +55,6 @@ function dot(v::HilbertVector, Au::MappedVector)
     BilinearForm(test_space, trial_space, test_ids, trial_ids, coefficients, operators)
 end
 
-import Base:+
 function +(a::BilinearForm, b::BilinearForm)
     @assert a.test_space == b.test_space
     @assert a.trial_space == b.trial_space
@@ -54,6 +66,30 @@ function +(a::BilinearForm, b::BilinearForm)
         [a.coefficients; b.coefficients],
         [a.operators; b.operators],
     )
+end
+
+function -(a::BilinearForm)
+  BilinearForm(
+    a.test_space,
+    a.trial_space,
+    a.test_ids,
+    a.trial_ids,
+    -a.coefficients,
+    a.operators,
+  )
+end
+
+-(a::BilinearForm, b::BilinearForm) = a + (-b)
+
+function *(a::Number, b::BilinearForm)
+  BilinearForm(
+    b.test_space,
+    b.trial_space,
+    b.test_ids,
+    b.trial_ids,
+    a*b.coefficients,
+    b.operators,
+  )
 end
 
 type Equation
@@ -68,6 +104,23 @@ macro eq(x)
     lhs = x.args[1]
     rhs = x.args[3]
     :( Equation($(esc(lhs)), $(esc(rhs))))
+end
+
+type LinearForm
+  test_space
+  test_ids
+  coefficients
+  functionals
+end
+
+function dot(v::HilbertVector, f)
+  #ids - [v.idx]
+  #cfs = []
+  LinearForm(
+    v.space,
+    [v.idx],
+    [one(field(v))],
+    [f])
 end
 
 end # module
