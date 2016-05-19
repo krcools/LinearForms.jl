@@ -45,13 +45,14 @@ function print(io::IO, a::BilinearForm)
   end
 end
 
+
 function dot(v::HilbertVector, Au::MappedVector)
     test_space  = v.space
     trial_space = Au.vector.space
     test_ids  = [v.idx]
     trial_ids = [Au.vector.idx]
     coefficients = [one(field(v))]
-    operators = Au.operator
+    operators = [Au.operator]
     BilinearForm(test_space, trial_space, test_ids, trial_ids, coefficients, operators)
 end
 
@@ -97,6 +98,12 @@ type Equation
     rhs
 end
 
+function print(io::IO, eq::Equation)
+  print(io, eq.lhs)
+  print(io, " == ")
+  print(io, eq.rhs)
+end
+
 macro eq(x)
     @assert x.head == :comparison
     @assert length(x.args) == 3
@@ -113,9 +120,20 @@ type LinearForm
   functionals
 end
 
+function print(io::IO, a::LinearForm)
+  for i in 1:length(a.functionals)
+    c = a.coefficients[i]
+    c != 1 && print(io, c, "*")
+    print(io, "(")
+    print(io, a.test_space[a.test_ids[i]])
+    print(io, ", ")
+    print(io, a.functionals[i])
+    print(io, ")")
+    i == length(a.functionals) || print(io, " + ")
+  end
+end
+
 function dot(v::HilbertVector, f)
-  #ids - [v.idx]
-  #cfs = []
   LinearForm(
     v.space,
     [v.idx],
