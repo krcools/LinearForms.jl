@@ -1,6 +1,7 @@
 module LinearForms
 
 export hilbert_space, @eq
+export HilbertVector
 
 import Base:+, -, *, dot
 import Base:print
