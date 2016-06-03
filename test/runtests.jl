@@ -3,7 +3,8 @@ module Test
 using LinearForms
 using Base.Test
 
-j, m = hilbert_space(Float64, :j, :m)
+j, = hilbert_space(Float64, :j)
+m, = hilbert_space(Float64, :m)
 
 T = :T
 K = :K
@@ -11,12 +12,15 @@ I = :I
 e = :e
 h = :h
 
-EFIE = @eq dot(m, T*j) == dot(m, e)
-MFIE_inner = @eq dot(m, K*j) + 0.5 * dot(m, I*j) == dot(m, h)
-MFIE_outer = @eq dot(m, K*j) - 0.5 * dot(m, I*j) == dot(m, h)
+EFIE = @eq T[m, j] == e[m]
+MFIE_inner = @eq K[m, j] + 0.5I[m, j] == h[m]
+MFIE_outer = @eq K[m, j] - 0.5I[m, j] == h[m]
 
-println(EFIE.lhs)
-println(EFIE.rhs)
+eq4 = @eq quote  T[div(m), div(j)] == e[m] end
+
 println(EFIE)
+println(MFIE_inner)
+println(MFIE_outer)
+println(eq4)
 
 end
