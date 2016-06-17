@@ -2,7 +2,7 @@ module LinearForms
 
 include("metatools.jl")
 
-export hilbert_space, @eq, field
+export hilbert_space, @jfc, field
 export HilbertVector
 
 import Base:+, -, *, dot, getindex, ^, call, print
@@ -173,7 +173,21 @@ function print(io::IO, eq::Equation)
   print(io, eq.rhs)
 end
 
-macro eq(x)
+"""
+    @jfc <form-definition>
+
+The Julia form compiler uses the Julia parser and meta-programming
+based traversal of the AST to create a structure containing all
+information required for the description of a variational formulation
+from an Expr that follows closely widespread mathematical convention.
+
+E.g:
+
+    EFIE = @jfc T[k,j] = e[k]
+    MFIE = @jfc 0.5*I[k,j] + K[k,j] = h[k]
+    PMCH = @jfc M[k,j] - η*T[k,m] + 1/η*T[l,j] + M[l,m] = e[k] + h[l]
+"""
+macro jfc(x)
 
     @assert isa(x, Expr)
     for s in depthfirst(x)
