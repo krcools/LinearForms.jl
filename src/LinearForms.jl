@@ -3,9 +3,8 @@ module LinearForms
 include("metatools.jl")
 
 export hilbert_space, @jfc
-#export HilbertVector
 
-import Base:+, -, *, dot, getindex, ^, call, print
+import Base: +, -, *, dot, getindex, ^, call, print
 
 type HilbertVector{T}
     idx
