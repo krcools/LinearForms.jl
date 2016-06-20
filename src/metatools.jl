@@ -6,15 +6,20 @@ export transposecalls!
 numchds(xp) = length(xp.args) + 1
 child(xp, idx) = idx == 1 ? xp.head : xp.args[idx-1]
 
+
 type DepthFirst
     xp::Expr
 end
 
+
 """
+    depthfirst(xp)
+
 Returns an iterator that visits all nodes in an Expr depth first. head and
 args are visited before the Expr they define.
 """
 depthfirst(xp) = DepthFirst(xp)
+
 
 type DepthFirstState
     val
@@ -22,13 +27,15 @@ type DepthFirstState
     idx
 end
 
+
 function start(itr::DepthFirst)
-    # invalid ancestre to the root to facilitate done testing
     head = DepthFirstState(itr.xp, nothing, -1)
     return DepthFirstState(itr.xp, head, 0)
 end
 
+
 done(itr::DepthFirst, state::DepthFirstState) = (state.par == nothing)
+
 
 function next(itr::DepthFirst, state::DepthFirstState)
 
@@ -53,6 +60,13 @@ function next(itr::DepthFirst, state::DepthFirstState)
     return next(itr, state)
 end
 
+
+"""
+    transposecall!(xp, skip=[])
+
+Goes through the syntax tree and replace all function calls
+`f(x,p1,p2,...)` with `x(f,p1,p2,...)`.
+"""
 function transposecalls!(xp, skip=[])
     isa(xp, Expr) || return xp
     for x in depthfirst(xp)

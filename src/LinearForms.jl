@@ -2,8 +2,8 @@ module LinearForms
 
 include("metatools.jl")
 
-export hilbert_space, @jfc, coordtype
-export HilbertVector
+export hilbert_space, @jfc
+#export HilbertVector
 
 import Base:+, -, *, dot, getindex, ^, call, print
 
@@ -45,27 +45,58 @@ type Equation
     rhs
 end
 
+"""
+    ==(lhs::BilForm, rhs::LinForm)
+
+Build an equation from a left hand and right hand side
+"""
 ==(lhs::BilForm, rhs::LinForm) = Equation(lhs, rhs)
 
-"Get the field the Hilbert space is over"
+
+"""
+    coordtype(v)
+
+ Get the field the Hilbert space is over
+"""
 coordtype{T}(v::HilbertVector{T}) = T
 
-"Returns generators for an Abelian group"
+
+"""
+    hilbert_space(type, g1, g2, ...)
+
+Returns generators defining a Hilbert space of field `type`
+"""
 hilbert_space(T::Type, vars...) = [HilbertVector{T}(i, [vars...], []) for i in 1:length(vars)]
 
-getindex(f, v::HilbertVector) = LinForm(v.space, [v.idx], [one(coordtype(v))], [f],Any[v.opstack])
 
-"Add another operation to the Stack"
+"""
+    call(u::HilbertVector, f, params...)
+    u(f, params...)
+
+Add another operation to the opstack of `u`.
+"""
 call(u::HilbertVector, f, params...) = HilbertVector{coordtype(u)}(u.idx, u.space, [(f, params...); u.opstack])
 
-"Create a Bilinear Term"
+
+"""
+    getindex(f, v::HilbertVector)
+    f[v]
+
+Return a LinForm corresponding to f[v]
+"""
+getindex(f, v::HilbertVector) = LinForm(v.space, [LinTerm(v.idx, v.opstack, 1, f)])
+
+
+"""
+    getindex(A, v::HilbertVector, u::HilbertVector)
+
+Create a BilForm corresponding to A[v,u]
+"""
 function getindex(A, v::HilbertVector, u::HilbertVector)
-  T = coordtype(v)
-  test_space   = v.space
-  trial_space  = u.space
-  term = BilTerm(v.idx, u.idx, v.opstack, u.opstack, one(T), A)
-  BilForm(test_space, trial_space, term)
+    terms = [ BilTerm(v.idx, u.idx, v.opstack, u.opstack, 1, A) ]
+    BilForm(v.space, u.space, terms)
 end
+
 
 "Add two BilForms together"
 function +(a::BilForm, b::BilForm)
@@ -105,28 +136,30 @@ function print(io::IO, a::LinForm)
     T = typeof(a.terms[1].coeff)
     for (n,t) in enumerate(a.terms)
       u = HilbertVector{T}(t.test_id, a.test_space, t.test_ops)
-      t.coeff != && print(io, t.coeff, "*")
+      t.coeff != 1 && print(io, t.coeff, "*")
       print(io, t.functional, "[", u, "]")
       n == N || print(io, " + ")
+  end
 end
 
 
 function print(io::IO, f::BilForm)
-  N = length(f.terms)
-  T = typeof(f.terms[1].coeff)
-  for (n,t) in f.terms
-    u = HilbertVector{T}(t.test_id, a.test_space, t.test_ops)
-    v = HilbertVector{T}(t.trial_id, a.trial_space, t.trial_ops)
-    t.coeff != && print(io, t.coeff, "*")
-    print(io, b, "[", u, ", ", v, "]")
-    n != N || print(io, " + ")
-  end
+    N = length(f.terms)
+    T = typeof(f.terms[1].coeff)
+
+    for (n,t) in enumerate(f.terms)
+        u = HilbertVector{T}(t.test_id, f.test_space, t.test_ops)
+        v = HilbertVector{T}(t.trial_id, f.trial_space, t.trial_ops)
+        t.coeff != 1 && print(io, t.coeff, "*")
+        print(io, t.kernel, "[", u, ", ", v, "]")
+        n == N || print(io, " + ")
+    end
 end
 
 function print(io::IO, eq::Equation)
-  print(io, eq.lhs)
-  print(io, " == ")
-  print(io, eq.rhs)
+    print(io, eq.lhs)
+    print(io, " == ")
+    print(io, eq.rhs)
 end
 
 
@@ -146,36 +179,10 @@ E.g:
     PMCH = @jfc M[k,j] - η*T[k,m] + 1/η*T[l,j] + M[l,m] = e[k] + h[l]
 """
 macro jfc(x)
-
-    @assert isa(x, Expr)
-    for s in depthfirst(x)
-        isa(s, Expr) && s.head == :comparison && (x = s; break)
-    end
-
-    @assert x.head == :comparison
-    @assert length(x.args) == 3
-    @assert x.args[2] == :(==)
-
-    lhs = x.args[1]
-    rhs = x.args[3]
-
-    # Will fail horribly with more than one level of []
-    for s in depthfirst(lhs)
-        isa(s, Expr) && s.head == :ref || continue
-        @assert length(s.args) == 3
-        transposecalls!(s.args[2])
-        transposecalls!(s.args[3])
-    end
-
-    # Similar for the right hand side.
-    for s in depthfirst(rhs)
-        isa(s, Expr) && s.head == :ref || continue
-        @assert length(s.args) == 2
-        transposecalls!(s.args[2])
-    end
-
-    transposecalls!(x)
+    y = transposecalls!(x, [:+, :-, :*])
+    esc(y)
 end
+
 
 
 end # module
