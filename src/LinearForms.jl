@@ -2,7 +2,7 @@ module LinearForms
 
 include("metatools.jl")
 
-export hilbert_space, @jfc
+export hilbert_space, @jfc, Equation
 
 import Base: +, -, *, dot, getindex, ^, call, print
 
