@@ -53,10 +53,10 @@ function next(itr::DepthFirst, state::DepthFirstState)
     return next(itr, state)
 end
 
-function transposecalls!(xp)
+function transposecalls!(xp, skip=[])
     isa(xp, Expr) || return xp
     for x in depthfirst(xp)
-        if isa(x, Expr) && x.head == :call
+        if isa(x, Expr) && x.head == :call && !(x.args[1] in skip)
             @assert length(x.args) >= 2
             tmp = x.args[1]
             x.args[1] = x.args[2]

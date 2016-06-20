@@ -2,7 +2,7 @@ module LinearForms
 
 include("metatools.jl")
 
-export hilbert_space, @jfc, field
+export hilbert_space, @jfc, coordtype
 export HilbertVector
 
 import Base:+, -, *, dot, getindex, ^, call, print
@@ -14,22 +14,30 @@ type HilbertVector{T}
 end
 
 type LinForm
-    test_space
-    test_ids
-    coeffs
-    functionals
-    test_ops
+  test_space
+  terms
+end
+
+type LinTerm
+  test_id
+  test_ops
+  coeff
+  functional
 end
 
 type BilForm
-    test_space
-    trial_space
-    test_ids
-    trial_ids
-    test_ops
-    trial_ops
-    coeffs
-    kernels
+  test_space
+  trial_space
+  terms
+end
+
+type BilTerm
+  test_id
+  trial_id
+  test_ops
+  trial_ops
+  coeff
+  kernel
 end
 
 type Equation
@@ -37,83 +45,45 @@ type Equation
     rhs
 end
 
-field{T}(v::HilbertVector{T}) = T
+==(lhs::BilForm, rhs::LinForm) = Equation(lhs, rhs)
 
-function hilbert_space(T::Type, vars...)
-    [HilbertVector{T}(i, [vars...], []) for i in 1:length(vars)]
-end
+"Get the field the Hilbert space is over"
+coordtype{T}(v::HilbertVector{T}) = T
 
-function dot(v::HilbertVector, f)
-    LinForm(v.space, [v.idx], [one(field(v))], [f],Any[v.opstack])
-end
+"Returns generators for an Abelian group"
+hilbert_space(T::Type, vars...) = [HilbertVector{T}(i, [vars...], []) for i in 1:length(vars)]
 
-getindex(f, v::HilbertVector) = dot(v, f)
+getindex(f, v::HilbertVector) = LinForm(v.space, [v.idx], [one(coordtype(v))], [f],Any[v.opstack])
 
-function call(u::HilbertVector, f, params...)
-    HilbertVector{field(u)}(u.idx, u.space, [(f, params...); u.opstack])
-end
+"Add another operation to the Stack"
+call(u::HilbertVector, f, params...) = HilbertVector{coordtype(u)}(u.idx, u.space, [(f, params...); u.opstack])
 
-
+"Create a Bilinear Term"
 function getindex(A, v::HilbertVector, u::HilbertVector)
-    test_space   = v.space
-    trial_space  = u.space
-    test_ids     = [v.idx]
-    trial_ids    = [u.idx]
-    test_ops     = Any[v.opstack]
-    trial_ops    = Any[u.opstack]
-    coefficients = [one(field(v))]
-    operators    = [A]
-    BilForm(
-        test_space, trial_space,
-        test_ids, trial_ids,
-        test_ops, trial_ops,
-        coefficients, operators)
-
+  T = coordtype(v)
+  test_space   = v.space
+  trial_space  = u.space
+  term = BilTerm(v.idx, u.idx, v.opstack, u.opstack, one(T), A)
+  BilForm(test_space, trial_space, term)
 end
 
+"Add two BilForms together"
 function +(a::BilForm, b::BilForm)
     @assert a.test_space == b.test_space
     @assert a.trial_space == b.trial_space
-    BilForm(
-        a.test_space, a.trial_space,
-        [a.test_ids; b.test_ids],
-        [a.trial_ids; b.trial_ids],
-        [a.test_ops; b.test_ops],
-        [a.trial_ops; b.trial_ops],
-        [a.coeffs; b.coeffs],
-        [a.kernels; b.kernels],
-    )
+    BilForm(a.test_space, a.trial_space, [a.terms; b.terms])
 end
 
-function -(a::BilForm)
-  BilForm(
-    a.test_space, a.trial_space,
-    a.test_ids,
-    a.trial_ids,
-    a.test_ops,
-    a.trial_ops,
-    -a.coeffs,
-    a.kernels,
-  )
+function *(α::Number, a::BilForm)
+  b = deepcopy(a)
+  for t in b.terms t.coeff *= α end
+  return b
 end
 
+-(a::BilForm) = (-1 * a)
 -(a::BilForm, b::BilForm) = a + (-b)
 
-function *(a::Number, b::BilForm)
-  BilForm(
-    b.test_space, b.trial_space,
-    b.test_ids,
-    b.trial_ids,
-    b.test_ops,
-    b.trial_ops,
-    a*b.coeffs,
-    b.kernels,
-  )
-end
 
-
-
-#print(io::IO, v::HilbertVector) = print(io, v.space[v.idx])
 function print(io::IO, v::HilbertVector)
     sym = v.space[v.idx]
     ops = v.opstack
@@ -131,40 +101,26 @@ end
 
 
 function print(io::IO, a::LinForm)
-    N = length(a.functionals)
-    T = eltype(a.coeffs)
-    for n in 1:N
-        c, b = a.coeffs[n], a.functionals[n]
-        i, p = a.test_ids[n], a.test_ops[n]
-
-        u = HilbertVector{T}(i, a.test_space, p)
-
-        c != 1 && print(io, c)
-        print(io, b)
-        print(io, "[", u, "]")
-        n == N || print(io, " + ")
-    end
+    N = length(a.terms)
+    T = typeof(a.terms[1].coeff)
+    for (n,t) in enumerate(a.terms)
+      u = HilbertVector{T}(t.test_id, a.test_space, t.test_ops)
+      t.coeff != && print(io, t.coeff, "*")
+      print(io, t.functional, "[", u, "]")
+      n == N || print(io, " + ")
 end
 
 
 function print(io::IO, f::BilForm)
-
-    T = eltype(f.coeffs)
-
-    for n in 1:length(f.coeffs)
-        c, b = f.coeffs[n],   f.kernels[n]
-        i, j = f.test_ids[n], f.trial_ids[n]
-        p, q = f.test_ops[n], f.trial_ops[n]
-
-        u = HilbertVector{T}(i, f.test_space, p)
-        v = HilbertVector{T}(j, f.trial_space, q)
-
-        c != 1 && print(io, c)
-        print(io, b, "[")
-        print(io, u, ", ")
-        print(io, v, "]")
-        n != length(f.coeffs) && print(io, " + ")
-    end
+  N = length(f.terms)
+  T = typeof(f.terms[1].coeff)
+  for (n,t) in f.terms
+    u = HilbertVector{T}(t.test_id, a.test_space, t.test_ops)
+    v = HilbertVector{T}(t.trial_id, a.trial_space, t.trial_ops)
+    t.coeff != && print(io, t.coeff, "*")
+    print(io, b, "[", u, ", ", v, "]")
+    n != N || print(io, " + ")
+  end
 end
 
 function print(io::IO, eq::Equation)
@@ -172,6 +128,8 @@ function print(io::IO, eq::Equation)
   print(io, " == ")
   print(io, eq.rhs)
 end
+
+
 
 """
     @jfc <form-definition>
@@ -216,7 +174,8 @@ macro jfc(x)
         transposecalls!(s.args[2])
     end
 
-    :( Equation($(esc(lhs)), $(esc(rhs))))
+    transposecalls!(x)
 end
+
 
 end # module
