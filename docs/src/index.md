@@ -30,12 +30,21 @@ prone results if the are chosen different.
 Next, the variational formulation can be constructed:
 
 ```julia
-P = @jfc a[v,u] = f[v]
+P = @jfc a[v,u] == f[v]
 ```
 
 The main benefit of using this package and the `@jfc` macro is that the object
 `a` and `f` could be of any type. This package does not require the operators and
 functionals to be derived from a preprescribed parent type.
+
+Bilinear forms can be added and subtracted and multiplied by scalars. In addition
+the test and trial fields can be mapped by functions. These functions may accept
+parameters in addition to the field but the field is required to be the first
+argument. An example deomnstrating these features:
+
+```julia
+P = @jfc a[dvg(v), trace(u)] + 3b[v,u] == f[v]
+```
 
 
 ## Notes
