@@ -3,6 +3,7 @@ module LinearForms
 include("metatools.jl")
 
 export hilbert_space, @jfc, Equation
+export LinForm, LinTerm, BilForm, BilTerm
 
 import Base: +, -, *, dot, getindex, ^, call, print
 
@@ -104,14 +105,28 @@ function +(a::BilForm, b::BilForm)
     BilForm(a.test_space, a.trial_space, [a.terms; b.terms])
 end
 
+function+(a::LinForm, b::LinForm)
+    @assert a.test_space == b.test_space
+    LinForm(a.test_space, [a.terms; b.terms])
+end
+
 function *(α::Number, a::BilForm)
   b = deepcopy(a)
   for t in b.terms t.coeff *= α end
   return b
 end
 
+function *(α::Number, a::LinForm)
+    b = deepcopy(a)
+    for t in b.terms t.coeff *= α end
+    return b
+end
+
 -(a::BilForm) = (-1 * a)
 -(a::BilForm, b::BilForm) = a + (-b)
+
+-(a::LinForm) = (-1 * a)
+-(a::LinForm, b::LinForm) = a + (-b)
 
 
 function print(io::IO, v::HilbertVector)
@@ -162,7 +177,6 @@ function print(io::IO, eq::Equation)
 end
 
 
-
 """
     @jfc <form-definition>
 
@@ -181,7 +195,6 @@ macro jfc(x)
     y = transposecalls!(x, [:+, :-, :*])
     esc(y)
 end
-
 
 
 end # module
