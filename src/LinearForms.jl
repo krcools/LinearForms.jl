@@ -80,19 +80,6 @@ Add another operation to the opstack of `u`.
 call(u::HilbertVector, f, params...) = HilbertVector{coordtype(u)}(u.idx, u.space, [(f, params...); u.opstack])
 
 
-# temporary patch on the ambiguity warnings
-getindex(::AbstractArray, ::HilbertVector) = error("ambiguity avoidance")
-getindex(::Base.Colon, ::HilbertVector) = error("ambiguity avoidance")
-getindex(::Type{Any}, ::HilbertVector) = error("ambiguity avoidance")
-getindex(::Type, ::HilbertVector) = error("ambiguity avoidance")
-getindex(::Base.Dict, ::HilbertVector) = error("ambiguity avoidance")
-getindex(::Base.WeakKeyDict, ::HilbertVector) = error("ambiguity avoidance")
-getindex(::Base.Collections.PriorityQueue, ::HilbertVector) = error("ambiguity avoidance")
-getindex(::Base.Associative, ::HilbertVector) = error("ambiguity avoidance")
-getindex(::Base.RemoteRef, ::HilbertVector) = error("ambiguity avoidance")
-getindex(::Base.LinAlg.ZeroOffsetVector, ::HilbertVector) = error("ambiguity avoidance")
-getindex(::Base.Markdown.MD, ::HilbertVector) = error("ambiguity avoidance")
-getindex(::Base.Associative, ::HilbertVector, ::HilbertVector) = error("ambiguity avoidance")
 
 
 """
