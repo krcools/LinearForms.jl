@@ -4,7 +4,7 @@ include("metatools.jl")
 
 import Base.==
 
-export hilbert_space, @jfc, Equation
+export hilbert_space, @varform, Equation
 export LinForm, LinTerm, BilForm, BilTerm
 
 import Base: +, -, *, dot, getindex, ^, call, print
@@ -182,7 +182,7 @@ end
 
 
 """
-    @jfc <form-definition>
+    @varform <form-definition>
 
 The Julia form compiler uses the Julia parser and meta-programming
 based traversal of the AST to create a structure containing all
@@ -191,11 +191,11 @@ from an Expr that follows closely widespread mathematical convention.
 
 E.g:
 
-    EFIE = @jfc T[k,j] = e[k]
-    MFIE = @jfc 0.5*I[k,j] + K[k,j] = h[k]
-    PMCH = @jfc M[k,j] - η*T[k,m] + 1/η*T[l,j] + M[l,m] = e[k] + h[l]
+    EFIE = @varform T[k,j] = e[k]
+    MFIE = @varform 0.5*I[k,j] + K[k,j] = h[k]
+    PMCH = @varform M[k,j] - η*T[k,m] + 1/η*T[l,j] + M[l,m] = e[k] + h[l]
 """
-macro jfc(x)
+macro varform(x)
     y = transposecalls!(x, [:+, :-, :*])
     esc(y)
 end

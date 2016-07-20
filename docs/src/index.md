@@ -30,10 +30,10 @@ prone results if the are chosen different.
 Next, the variational formulation can be constructed:
 
 ```julia
-P = @jfc a[v,u] == f[v]
+P = @varform a[v,u] == f[v]
 ```
 
-The main benefit of using this package and the `@jfc` macro is that the object
+The main benefit of using this package and the `@varform` macro is that the object
 `a` and `f` could be of any type. This package does not require the operators and
 functionals to be derived from a preprescribed parent type.
 
@@ -43,7 +43,7 @@ parameters in addition to the field but the field is required to be the first
 argument. An example deomnstrating these features:
 
 ```julia
-P = @jfc a[dvg(v), trace(u)] + 3b[v,u] == f[v]
+P = @varform a[dvg(v), trace(u)] + 3b[v,u] == f[v]
 ```
 
 
@@ -58,5 +58,5 @@ P = @jfc a[dvg(v), trace(u)] + 3b[v,u] == f[v]
 
 ```@docs
 hilbert_space
-@jfc
+@varform
 ```
