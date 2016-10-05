@@ -77,7 +77,8 @@ hilbert_space(T::Type, vars...) = [HilbertVector{T}(i, [vars...], []) for i in 1
 
 Add another operation to the opstack of `u`.
 """
-call(u::HilbertVector, f, params...) = HilbertVector{coordtype(u)}(u.idx, u.space, [(f, params...); u.opstack])
+#call(u::HilbertVector, f, params...) = HilbertVector{coordtype(u)}(u.idx, u.space, [(f, params...); u.opstack])
+(u::HilbertVector)(f, params...) = HilbertVector{coordtype(u)}(u.idx, u.space, [(f, params...); u.opstack])
 
 
 
@@ -196,7 +197,7 @@ E.g:
     PMCH = @varform M[k,j] - η*T[k,m] + 1/η*T[l,j] + M[l,m] = e[k] + h[l]
 """
 macro varform(x)
-    y = transposecalls!(x, [:+, :-, :*])
+    y = transposecalls!(x, [:+, :-, :*, :(==)])
     esc(y)
 end
 
