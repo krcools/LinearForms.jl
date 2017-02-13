@@ -1,8 +1,8 @@
 using LinearForms
 using Base.Test
 
-j, = hilbert_space(Float64, :j)
-m, = hilbert_space(Float64, :m)
+j, = hilbertspace(:j)
+m, = hilbertspace(:m)
 
 # The form compiler does not force the
 # operators and functionals to derive

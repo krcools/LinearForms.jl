@@ -4,12 +4,12 @@ include("metatools.jl")
 
 import Base.==
 
-export hilbert_space, @varform, Equation
+export hilbertspace, @varform, Equation
 export LinForm, LinTerm, BilForm, BilTerm
 
 import Base: +, -, *, dot, getindex, ^, call, print
 
-type HilbertVector{T}
+type HilbertVector
     idx
     space
     opstack
@@ -55,20 +55,13 @@ Build an equation from a left hand and right hand side
 ==(lhs::BilForm, rhs::LinForm) = Equation(lhs, rhs)
 
 
-"""
-    coordtype(v)
-
- Get the field the Hilbert space is over
-"""
-coordtype{T}(v::HilbertVector{T}) = T
-
 
 """
     hilbert_space(type, g1, g2, ...)
 
 Returns generators defining a Hilbert space of field `type`
 """
-hilbert_space(T::Type, vars...) = [HilbertVector{T}(i, [vars...], []) for i in 1:length(vars)]
+hilbertspace(vars::Symbol...) = [HilbertVector(i, [vars...], []) for i in 1:length(vars)]
 
 
 """
@@ -77,8 +70,7 @@ hilbert_space(T::Type, vars...) = [HilbertVector{T}(i, [vars...], []) for i in 1
 
 Add another operation to the opstack of `u`.
 """
-#call(u::HilbertVector, f, params...) = HilbertVector{coordtype(u)}(u.idx, u.space, [(f, params...); u.opstack])
-(u::HilbertVector)(f, params...) = HilbertVector{coordtype(u)}(u.idx, u.space, [(f, params...); u.opstack])
+(u::HilbertVector)(f, params...) = HilbertVector(u.idx, u.space, [(f, params...); u.opstack])
 
 
 
@@ -152,9 +144,9 @@ end
 
 function print(io::IO, a::LinForm)
     N = length(a.terms)
-    T = typeof(a.terms[1].coeff)
+    #T = typeof(a.terms[1].coeff)
     for (n,t) in enumerate(a.terms)
-      u = HilbertVector{T}(t.test_id, a.test_space, t.test_ops)
+      u = HilbertVector(t.test_id, a.test_space, t.test_ops)
       t.coeff != 1 && print(io, t.coeff, "*")
       print(io, t.functional, "[", u, "]")
       n == N || print(io, " + ")
@@ -164,11 +156,11 @@ end
 
 function print(io::IO, f::BilForm)
     N = length(f.terms)
-    T = typeof(f.terms[1].coeff)
+    #T = typeof(f.terms[1].coeff)
 
     for (n,t) in enumerate(f.terms)
-        u = HilbertVector{T}(t.test_id, f.test_space, t.test_ops)
-        v = HilbertVector{T}(t.trial_id, f.trial_space, t.trial_ops)
+        u = HilbertVector(t.test_id, f.test_space, t.test_ops)
+        v = HilbertVector(t.trial_id, f.trial_space, t.trial_ops)
         t.coeff != 1 && print(io, t.coeff, "*")
         print(io, t.kernel, "[", u, ", ", v, "]")
         n == N || print(io, " + ")
