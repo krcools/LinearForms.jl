@@ -4,7 +4,8 @@ include("metatools.jl")
 
 import Base.==
 
-export hilbertspace, @varform, Equation
+export hilbertspace, @hilbertspace
+export @varform, Equation
 export LinForm, LinTerm, BilForm, BilTerm
 
 import Base: +, -, *, dot, getindex, ^, call, print
@@ -62,6 +63,29 @@ Build an equation from a left hand and right hand side
 Returns generators defining a Hilbert space of field `type`
 """
 hilbertspace(vars::Symbol...) = [HilbertVector(i, [vars...], []) for i in 1:length(vars)]
+
+
+macro hilbertspace(syms...)
+
+    for sym in syms
+        @assert isa(sym, Symbol) "@hilbertspace takes a list of Symbols"
+    end
+
+    rhs = :(hilbertspace())
+    for sym in syms
+        push!(rhs.args, QuoteNode(sym))
+    end
+
+    vars = gensym()
+    xp = quote
+        $vars = $rhs
+    end
+    for (i,s) in enumerate(syms)
+        push!(xp.args, :(global $s = $vars[$i]))
+    end
+
+    xp
+end
 
 
 """
